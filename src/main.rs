@@ -117,15 +117,15 @@ fn main() -> ! {
     en_pin.set_low().unwrap();
     delay.delay_ms(5000);
     let mut stepper = stepgen::Stepgen::new(1_000_000);
-    _ = stepper.set_acceleration(2000 << 8);
-    _ = stepper.set_target_speed(10000 << 8);
-    _ = stepper.set_target_step(STEPS_PER_REV * 40);
+    _ = stepper.set_acceleration(1000 << 8);
+    _ = stepper.set_target_speed(8000 << 8);
+    _ = stepper.set_target_step(STEPS_PER_REV * 65);
     while let Some(time) = stepper.next() {
         // for _ in 0..200 {
         delay.delay_us((time + 128) >> 8);
         step(&mut delay, &mut step_pin);
     }
-    delay.delay_us(100);
+    delay.delay_ms(100);
     // Disable driver
     en_pin.set_high().unwrap();
     loop {
