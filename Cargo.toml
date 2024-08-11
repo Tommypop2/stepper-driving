@@ -11,3 +11,6 @@ cortex-m-rt = "0.7.4"
 embedded-hal = "1.0.0"
 panic-halt = "0.2.0"
 rp-pico = "0.9.0"
+# stepgen = "0.1.3"
+stepgen = { path = "../stepgen" }
+# stepper = { git = "https://github.com/hannobraun/stepper" }

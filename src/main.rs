@@ -7,9 +7,10 @@
 //!
 //! See the `Cargo.toml` file for Copyright and license details.
 
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![no_main]
 
+use cortex_m::asm::wfi;
 use cortex_m::delay::Delay;
 // The macro for our start-up function
 use rp_pico::entry;
@@ -25,7 +26,6 @@ use rp_pico::hal::gpio::FunctionSioOutput;
 use rp_pico::hal::gpio::Pin;
 use rp_pico::hal::gpio::PinId;
 use rp_pico::hal::gpio::PullDown;
-use rp_pico::hal::gpio::PullNone;
 // Pull in any important traits
 use rp_pico::hal::prelude::*;
 
@@ -36,6 +36,7 @@ use rp_pico::hal::pac;
 // A shorter alias for the Hardware Abstraction Layer, which provides
 // higher-level drivers.
 use rp_pico::hal;
+use stepgen;
 
 enum Direction {
     Clockwise,
@@ -47,6 +48,24 @@ fn step<T: PinId>(delay: &mut Delay, step_pin: &mut Pin<T, FunctionSioOutput, Pu
     delay.delay_us(1);
     step_pin.set_low().unwrap();
 }
+fn steps<T: PinId, U: PinId>(
+    delay: &mut Delay,
+    step_pin: &mut Pin<T, FunctionSioOutput, PullDown>,
+    dir_pin: &mut Pin<U, FunctionSioOutput, PullDown>,
+    steps: u32,
+    step_delay: u32,
+    dir: Direction,
+) {
+    match dir {
+        Direction::Clockwise => dir_pin.set_high().unwrap(),
+        Direction::AntiClockwise => dir_pin.set_low().unwrap(),
+    }
+    for _ in 0..steps {
+        step(delay, step_pin);
+        delay.delay_us(step_delay);
+    }
+}
+static STEPS_PER_REV: u32 = 200 * 8;
 #[entry]
 fn main() -> ! {
     // Grab our singleton objects
@@ -96,11 +115,46 @@ fn main() -> ! {
     en_pin.set_high().unwrap();
     dir_pin.set_low().unwrap();
     en_pin.set_low().unwrap();
-    let steps = 5000;
     delay.delay_ms(5000);
-    loop {
-        delay.delay_us(400);
+    let mut stepper = stepgen::Stepgen::new(1_000_000);
+    _ = stepper.set_acceleration(2000 << 8);
+    _ = stepper.set_target_speed(10000 << 8);
+    _ = stepper.set_target_step(STEPS_PER_REV * 40);
+    while let Some(time) = stepper.next() {
+        // for _ in 0..200 {
+        delay.delay_us((time + 128) >> 8);
         step(&mut delay, &mut step_pin);
+    }
+    delay.delay_us(100);
+    // Disable driver
+    en_pin.set_high().unwrap();
+    loop {
+        // continue;
+        wfi();
+
+        // delay.delay_ms(1000);
+        // yellow_pin.set_high().unwrap();
+        // steps(
+        //     &mut delay,
+        //     &mut step_pin,
+        //     &mut dir_pin,
+        //     1000,
+        //     100,
+        //     Direction::Clockwise,
+        // );
+        // yellow_pin.set_low().unwrap();
+        // delay.delay_ms(1000);
+        // red_pin.set_high().unwrap();
+        // steps(
+        //     &mut delay,
+        //     &mut step_pin,
+        //     &mut dir_pin,
+        //     1000,
+        //     100,
+        //     Direction::AntiClockwise,
+        // );
+        // red_pin.set_low().unwrap();
+
         // dir_pin.set_low().unwrap();
         // delay.delay_ms(1000);
         // yellow_pin.set_high().unwrap();
