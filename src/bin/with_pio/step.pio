@@ -1,0 +1,10 @@
+.program step
+    pull block
+    out x, 32
+.wrap_target
+    mov y, x
+lp1:
+    jmp y-- lp1
+    set pins, 1
+    set pins, 0
+.wrap

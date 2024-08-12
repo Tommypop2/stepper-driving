@@ -21,6 +21,7 @@ use embedded_hal::digital::OutputPin;
 // be linked)
 use panic_halt as _;
 
+use rp_pico::hal::gpio::{FunctionPio0, Pin};
 // Pull in any important traits
 use rp_pico::hal::prelude::*;
 
@@ -71,18 +72,39 @@ fn main() -> ! {
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
-
+    
     // Set the LED to be an output
-    let mut yellow_pin = pins.gpio9.into_push_pull_output();
+    let mut yellow_pin: Pin<_, FunctionPio0, _> = pins.gpio9.into_function();
     let mut red_pin = pins.gpio10.into_push_pull_output();
     let mut dir_pin = pins.gpio18.into_push_pull_output();
     let mut en_pin = pins.gpio17.into_push_pull_output();
-    let mut step_pin = pins.gpio16.into_push_pull_output();
-    // Blink the LED at 1 Hz
+    let mut step_pin: Pin<_, FunctionPio0, _> = pins.gpio16.into_function();
+    let program_with_defines = pio_proc::pio_file!(
+        "src/bin/with_pio/step.pio",
+        // select_program("step"), // Optional if only one program in the file
+        options(max_program_size = 32) // Optional, defaults to 32
+    );
+
+    let pio_pin_id = step_pin.id().num;
+    let program = program_with_defines.program;
+    let (mut pio, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
+    let installed = pio.install(&program).unwrap();
+    let (mut sm, rx, mut tx) = hal::pio::PIOBuilder::from_installed_program(installed)
+        .set_pins(pio_pin_id, 1)
+        // Tick every microsecond
+        .clock_divisor_fixed_point(125, 0)
+        .out_shift_direction(hal::pio::ShiftDirection::Right)
+        .build(sm0);
+    tx.write(200u32);
+    sm.set_pindirs([(pio_pin_id, hal::pio::PinDir::Output)]);
+    let sm = sm.start();
     en_pin.set_high().unwrap();
     dir_pin.set_low().unwrap();
     en_pin.set_low().unwrap();
-    delay.delay_ms(5000);
+    delay.delay_ms(10000);
+    sm.stop();
+    delay.delay_ms(100);
+    en_pin.set_high().unwrap();
     loop {
         wfi();
     }
