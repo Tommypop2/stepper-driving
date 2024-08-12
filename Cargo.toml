@@ -2,7 +2,7 @@
 name = "pico-template"
 version = "0.1.0"
 edition = "2021"
-
+default-run = "pico-template"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -12,5 +12,10 @@ embedded-hal = "1.0.0"
 panic-halt = "0.2.0"
 rp-pico = "0.9.0"
 # stepgen = "0.1.3"
-stepgen = { path = "../stepgen" }
+stepgen = { path = "../../stepgen" }
 # stepper = { git = "https://github.com/hannobraun/stepper" }
+
+[[bin]]
+name = "bit_banged"
+[[bin]]
+name = "with_pio"
