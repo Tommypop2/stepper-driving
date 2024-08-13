@@ -9,11 +9,11 @@ use rp_pico::entry;
 use embedded_hal::digital::OutputPin;
 
 
-use defmt::info;
 use defmt_rtt as _;
+use defmt::info;
 
-// use panic_halt as _;
-
+// use panic_probe as _;
+use panic_probe as _;
 use rp_pico::hal::gpio::{DynPinId, FunctionPio0, FunctionSioOutput, Pin, PinId, PullDown};
 // Pull in any important traits
 use rp_pico::hal::prelude::*;
