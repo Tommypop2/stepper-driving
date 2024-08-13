@@ -1,12 +1,3 @@
-//! # Pico Blinky Example
-//!
-//! Blinks the LED on a Pico board.
-//!
-//! This will blink an LED attached to GP25, which is the pin the Pico uses for
-//! the on-board LED.
-//!
-//! See the `Cargo.toml` file for Copyright and license details.
-
 #![cfg_attr(not(test), no_std)]
 #![no_main]
 
@@ -17,9 +8,12 @@ use rp_pico::entry;
 // GPIO traits
 use embedded_hal::digital::OutputPin;
 
-// Ensure we halt the program on panic (if we don't mention this crate it won't
-// be linked)
-use panic_halt as _;
+
+use defmt::info;
+use defmt_rtt as _;
+
+// use panic_halt as _;
+
 use rp_pico::hal::gpio::{DynPinId, FunctionPio0, FunctionSioOutput, Pin, PinId, PullDown};
 // Pull in any important traits
 use rp_pico::hal::prelude::*;
@@ -86,9 +80,9 @@ fn main() -> ! {
     // Set the LED to be an output
     let mut yellow_pin: Pin<_, FunctionPio0, _> = pins.gpio9.into_function();
     let mut red_pin = pins.gpio10.into_push_pull_output();
-    let mut dir_pin = pins.gpio18.into_push_pull_output();
-    let mut en_pin = pins.gpio17.into_push_pull_output();
-    let step_pin: Pin<_, FunctionPio0, _> = pins.gpio16.into_function();
+    let mut dir_pin = pins.gpio26.into_push_pull_output();
+    let mut en_pin = pins.gpio28.into_push_pull_output();
+    let step_pin: Pin<_, FunctionPio0, _> = pins.gpio27.into_function();
     let program_with_defines = pio_proc::pio_file!(
         "src/bin/with_pio/step.pio",
         // select_program("step"), // Optional if only one program in the file

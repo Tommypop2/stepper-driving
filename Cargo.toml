@@ -8,6 +8,8 @@ default-run = "pico-template"
 [dependencies]
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7.4"
+defmt = "0.3.8"
+defmt-rtt = "0.4.1"
 embedded-hal = "1.0.0"
 panic-halt = "0.2.0"
 pio = "0.2.1"
@@ -16,6 +18,7 @@ rp-pico = "0.9.0"
 # stepgen = "0.1.3"
 stepgen = { path = "../../stepgen" }
 # stepper = { git = "https://github.com/hannobraun/stepper" }
+panic-probe = { version = "0.3.2", features = ["print-defmt"] }
 
 [[bin]]
 name = "bit_banged"
@@ -23,3 +26,5 @@ name = "bit_banged"
 name = "with_pio"
 [[bin]]
 name = "pio_dma_example"
+[[bin]]
+name = "blinky"
