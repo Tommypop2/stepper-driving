@@ -111,7 +111,7 @@ fn main() -> ! {
         ".wrap_target",
         "pull block",
         "out x, 32",
-        // Having this as any value other than 1 doesn't work.
+        // Having this as any value other than 1 makes the program hang
         "irq 1"
         "lp1:",
         "jmp x-- lp1",
@@ -176,13 +176,16 @@ fn main() -> ! {
     driver_2.en_pin.set_low().unwrap();
 
     pio0.irq1().enable_sm_interrupt(1);
-    pio1.irq1().enable_sm_interrupt(0);
+    pio1.irq1().enable_sm_interrupt(1);
     info!("Starting state machine in 3s");
     delay.delay_ms(5000);
     let sm = sm0.start();
     let sm1 = sm02.start();
 
-    delay.delay_ms(100);
+    delay.delay_ms(500);
+    sm.stop();
+    sm1.stop();
+    unsafe {info!("PIO0: {}, PIO1: {}", PIO0_IRQ_1_COUNT, PIO1_IRQ_1_COUNT)};
     info!("State machines started");
     // let _sm = sm.stop();
 
@@ -207,9 +210,11 @@ static mut STEPS: u32 = 0;
 //     let pio = unsafe { &*pac::PIO0::ptr() };
 //     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
 // }
+static mut PIO0_IRQ_1_COUNT: u32 = 0;
 #[pac::interrupt]
 unsafe fn PIO0_IRQ_1() {
     // info!("PIO 0 IRQ 1 Executing");
+    PIO0_IRQ_1_COUNT += 1;
     let pio = unsafe { &*pac::PIO0::ptr() };
 
     // Clear interrupt flag
@@ -230,9 +235,11 @@ unsafe fn PIO0_IRQ_1() {
         }
     }
 }
+static mut PIO1_IRQ_1_COUNT: u32 = 0;
 #[pac::interrupt]
 unsafe fn PIO1_IRQ_1() {
     // info!("PIO 1 IRQ 1 Executing");
+    PIO1_IRQ_1_COUNT += 1;
     let pio = unsafe { &*pac::PIO1::ptr() };
     // Clear interrupt flag
     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
