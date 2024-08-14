@@ -70,6 +70,7 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
     info!("4.5");
+    // Code hangs after this point
     unsafe {
         pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_0);
         pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_0);
@@ -114,13 +115,15 @@ fn main() -> ! {
     // Blink the LED at 1 Hz
     info!("Starting State Machines");
     delay.delay_ms(100);
-    // let sm0 = sm0.start();
-    // let sm1 = sm1.start();
+    let sm0 = sm0.start();
+    let sm1 = sm1.start();
     delay.delay_ms(100);
-    // sm0.stop();
-    // sm1.stop();
-    // info!("PIO_IRQ_0_COUNT: {}", unsafe { PIO_IRQ_0_COUNT });
-    // info!("PIO_IRQ_1_COUNT: {}", unsafe { PIO_IRQ_1_COUNT });
+    sm0.stop();
+    sm1.stop();
+    info!("10");
+    info!("PIO_IRQ_0_COUNT: {}", unsafe { PIO_IRQ_0_COUNT });
+    info!("PIO_IRQ_1_COUNT: {}", unsafe { PIO_IRQ_1_COUNT });
+    info!("11");
     loop {
         led_pin.set_high().unwrap();
         delay.delay_ms(500);
@@ -128,8 +131,8 @@ fn main() -> ! {
         delay.delay_ms(500);
     }
 }
-// static mut PIO_IRQ_0_COUNT: u32 = 0;
-// static mut PIO_IRQ_1_COUNT: u32 = 0;
+static mut PIO_IRQ_0_COUNT: u32 = 0;
+static mut PIO_IRQ_1_COUNT: u32 = 0;
 // End of file
 #[pac::interrupt]
 unsafe fn PIO0_IRQ_0() {
@@ -138,7 +141,7 @@ unsafe fn PIO0_IRQ_0() {
     // Clear interrupt flag
     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
     // info!("PIO0_IRQ_0");
-    // PIO_IRQ_0_COUNT += 1;
+    PIO_IRQ_0_COUNT += 1;
 }
 #[pac::interrupt]
 unsafe fn PIO0_IRQ_1() {
@@ -147,5 +150,5 @@ unsafe fn PIO0_IRQ_1() {
     // Clear interrupt flag
     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
     // info!("PIO0_IRQ_1");
-    // PIO_IRQ_1_COUNT += 1;
+    PIO_IRQ_1_COUNT += 1;
 }
