@@ -72,10 +72,12 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
     info!("4.5");
-    // Code hangs after this point
     unsafe {
         pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_0);
+        info!("4.6");
+        // Code hangs at this point
         pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_0);
+        info!("4.7");
         pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_1);
         pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_1);
         // pac::NVIC::unpend(pac::Interrupt::PIO1_IRQ_0);
