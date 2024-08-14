@@ -30,6 +30,8 @@ use rp_pico::hal;
 ///
 /// The function configures the RP2040 peripherals, then blinks the LED in an
 /// infinite loop.
+static mut PIO_IRQ_0_COUNT: u32 = 0;
+static mut PIO_IRQ_1_COUNT: u32 = 0;
 #[entry]
 fn main() -> ! {
     info!("Starting");
@@ -131,8 +133,7 @@ fn main() -> ! {
         delay.delay_ms(500);
     }
 }
-static mut PIO_IRQ_0_COUNT: u32 = 0;
-static mut PIO_IRQ_1_COUNT: u32 = 0;
+
 // End of file
 #[pac::interrupt]
 unsafe fn PIO0_IRQ_0() {
