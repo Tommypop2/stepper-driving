@@ -93,13 +93,13 @@ fn main() -> ! {
         options(max_program_size = 32) // Optional, defaults to 32
     );
     unsafe {
-        DRIVER_2 = Some(MotorDriver {
+        DRIVER_1 = Some(MotorDriver {
             step_pin: step_pin.into_dyn_pin(),
             dir_pin: dir_pin.into_dyn_pin(),
             en_pin: en_pin.into_dyn_pin(),
             step_generator: stepgen::Stepgen::new(1_000_000),
         });
-        DRIVER_1 = Some(MotorDriver {
+        DRIVER_2 = Some(MotorDriver {
             step_pin: pins.gpio21.into_function().into_dyn_pin(),
             dir_pin: pins.gpio20.into_push_pull_output().into_dyn_pin(),
             en_pin: pins.gpio22.into_push_pull_output().into_dyn_pin(),
@@ -113,16 +113,16 @@ fn main() -> ! {
     let program = program_with_defines.program;
 
     let (mut pio0, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
-    let (mut pio1, sm02, _, _, _) = pac.PIO1.split(&mut pac.RESETS);
+    let (mut pio1, _, sm02, _, _) = pac.PIO1.split(&mut pac.RESETS);
     let installed1 = pio0.install(&program).unwrap();
     let installed2 = pio1.install(&program).unwrap();
-    let (mut sm0, rx, mut tx) = hal::pio::PIOBuilder::from_installed_program(installed1)
+    let (mut sm0, _, mut tx) = hal::pio::PIOBuilder::from_installed_program(installed1)
         .set_pins(pio_pin_id, 1)
         // Tick every microsecond
         .clock_divisor_fixed_point(125, 0)
         .out_shift_direction(hal::pio::ShiftDirection::Right)
         .build(sm0);
-    let (mut sm02, rx1, mut tx1) = hal::pio::PIOBuilder::from_installed_program(installed2)
+    let (mut sm02, _, mut tx1) = hal::pio::PIOBuilder::from_installed_program(installed2)
         .set_pins(pio_pin_id2, 1)
         // Tick every microsecond
         .clock_divisor_fixed_point(125, 0)
@@ -146,6 +146,7 @@ fn main() -> ! {
     driver_2.en_pin.set_high().unwrap();
     delay.delay_ms(1000);
     driver_2.en_pin.set_low().unwrap();
+
     pio0.irq1().enable_sm_interrupt(1);
     pio1.irq1().enable_sm_interrupt(1);
     info!("Starting state machine in 3s");
