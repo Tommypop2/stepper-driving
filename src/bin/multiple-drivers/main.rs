@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Debug;
+
 use cortex_m::asm::wfi;
 // The macro for our start-up function
 use rp_pico::entry;
@@ -8,7 +10,7 @@ use rp_pico::entry;
 // GPIO traits
 use embedded_hal::digital::OutputPin;
 
-use defmt::info;
+use defmt::{info, Format};
 use defmt_rtt as _;
 
 // use panic_probe as _;
@@ -26,13 +28,25 @@ use rp_pico::hal::pac;
 use rp_pico::hal;
 
 static STEPS_PER_REV: u32 = 200 * 8;
+
 struct MotorDriver<T: PinId, U: PinId, V: PinId> {
     step_pin: Pin<T, FunctionPio0, PullDown>,
     dir_pin: Pin<U, FunctionSioOutput, PullDown>,
     en_pin: Pin<V, FunctionSioOutput, PullDown>,
     step_generator: stepgen::Stepgen,
 }
-
+impl<T: PinId, U: PinId, V: PinId> Debug for MotorDriver<T, U, V> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("MotorDriver")
+            .field("step_generator", &self.step_generator)
+            .finish()
+    }
+}
+impl Format for MotorDriver<DynPinId, DynPinId, DynPinId> {
+    fn format(&self, f: defmt::Formatter<'_>) {
+        defmt::write!(f, "MotorDriver");
+    }
+}
 static mut DRIVER_1: Option<MotorDriver<DynPinId, DynPinId, DynPinId>> = None;
 static mut DRIVER_2: Option<MotorDriver<DynPinId, DynPinId, DynPinId>> = None;
 #[entry]
@@ -73,6 +87,7 @@ fn main() -> ! {
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
+    // Enable all PIO interrupts
     unsafe {
         pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_0);
         pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_0);
@@ -87,9 +102,22 @@ fn main() -> ! {
     let mut dir_pin = pins.gpio26.into_push_pull_output();
     let mut en_pin = pins.gpio28.into_push_pull_output();
     let step_pin: Pin<_, FunctionPio0, _> = pins.gpio27.into_function();
-    let program_with_defines = pio_proc::pio_file!(
-        "src/bin/with_pio/step.pio",
-        // select_program("step"), // Optional if only one program in the file
+    // let program_with_defines = pio_proc::pio_file!(
+    //     "src/bin/with_pio/step.pio",
+    //     // select_program("step"), // Optional if only one program in the file
+    //     options(max_program_size = 32) // Optional, defaults to 32
+    // );
+    let program_with_defines = pio_proc::pio_asm!(
+        ".wrap_target",
+        "pull block",
+        "out x, 32",
+        // Having this as any value other than 1 doesn't work.
+        "irq 1"
+        "lp1:",
+        "jmp x-- lp1",
+        "set pins, 1 [10]",
+        "set pins, 0",
+        ".wrap"
         options(max_program_size = 32) // Optional, defaults to 32
     );
     unsafe {
@@ -148,7 +176,7 @@ fn main() -> ! {
     driver_2.en_pin.set_low().unwrap();
 
     pio0.irq1().enable_sm_interrupt(1);
-    pio1.irq1().enable_sm_interrupt(1);
+    pio1.irq1().enable_sm_interrupt(0);
     info!("Starting state machine in 3s");
     delay.delay_ms(5000);
     let sm = sm0.start();
@@ -181,18 +209,30 @@ static mut STEPS: u32 = 0;
 // }
 #[pac::interrupt]
 unsafe fn PIO0_IRQ_1() {
-    // info!("IRQ 1 Executing");
+    // info!("PIO 0 IRQ 1 Executing");
     let pio = unsafe { &*pac::PIO0::ptr() };
 
     // Clear interrupt flag
     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
     // Write next value to the TX FIFO
-    if let Some(delay) = DRIVER_1.as_mut().unwrap().step_generator.next() {
-        pio.txf(0).write(|w| w.bits((delay + 128) >> 8));
+    // if let Some(delay) = DRIVER_1.as_mut().unwrap().step_generator.next() {
+    //     pio.txf(0).write(|w| w.bits((delay + 128) >> 8));
+    // }
+
+    match DRIVER_1.as_mut() {
+        Some(driver) => {
+            if let Some(delay) = driver.step_generator.next() {
+                pio.txf(0).write(|w| w.bits((delay + 128) >> 8));
+            }
+        }
+        None => {
+            // info!("{}", DRIVER_1)
+        }
     }
 }
 #[pac::interrupt]
 unsafe fn PIO1_IRQ_1() {
+    // info!("PIO 1 IRQ 1 Executing");
     let pio = unsafe { &*pac::PIO1::ptr() };
     // Clear interrupt flag
     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
@@ -204,7 +244,7 @@ unsafe fn PIO1_IRQ_1() {
             }
         }
         None => {
-            info!("Driver 2 not initialised")
+            // info!("Driver 2 not initialised")
         }
     }
 }
