@@ -10,15 +10,13 @@
 
 use cortex_m::singleton;
 use cortex_m_rt::entry;
-use rp_pico::hal as hal;
 use hal::dma::{double_buffer, single_buffer, DMAExt};
 use hal::gpio::{FunctionPio0, Pin};
 use hal::pac;
 use hal::pio::PIOExt;
 use hal::sio::Sio;
 use panic_halt as _;
-
-
+use rp_pico::hal;
 
 #[entry]
 fn main() -> ! {

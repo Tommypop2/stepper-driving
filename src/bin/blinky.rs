@@ -11,8 +11,8 @@
 #![no_main]
 
 // The macro for our start-up function
-use rp_pico::entry;
 use defmt_rtt as _;
+use rp_pico::entry;
 // GPIO traits
 use embedded_hal::digital::OutputPin;
 

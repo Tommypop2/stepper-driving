@@ -84,7 +84,6 @@ fn main() -> ! {
         pac::NVIC::unpend(pac::Interrupt::PIO1_IRQ_1);
         pac::NVIC::unmask(pac::Interrupt::PIO1_IRQ_1);
 
-
         // pac::NVIC::unpend(pac::Interrupt::PIO1_IRQ_0);
         // pac::NVIC::unmask(pac::Interrupt::PIO1_IRQ_0);
         // pac::NVIC::unpend(pac::Interrupt::PIO1_IRQ_1);

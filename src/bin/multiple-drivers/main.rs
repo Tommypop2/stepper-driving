@@ -15,7 +15,9 @@ use defmt_rtt as _;
 
 // use panic_probe as _;
 use panic_probe as _;
-use rp_pico::hal::gpio::{DynPinId, Function, FunctionPio0, FunctionPio1, FunctionSioOutput, Pin, PinId, PullDown};
+use rp_pico::hal::gpio::{
+    DynPinId, Function, FunctionPio0, FunctionPio1, FunctionSioOutput, Pin, PinId, PullDown,
+};
 // Pull in any important traits
 use rp_pico::hal::prelude::*;
 
@@ -187,10 +189,10 @@ fn main() -> ! {
     delay.delay_ms(500);
     info!("State machines started");
     // let _sm = sm.stop();
-    
+
     // driver_1.en_pin.set_high().unwrap();
     delay.delay_ms(20000);
-    unsafe {info!("PIO0: {}, PIO1: {}", PIO0_IRQ_1_COUNT, PIO1_IRQ_1_COUNT)};
+    unsafe { info!("PIO0: {}, PIO1: {}", PIO0_IRQ_1_COUNT, PIO1_IRQ_1_COUNT) };
 
     info!("Busy looping!");
     // sm.stop();
@@ -217,10 +219,10 @@ static mut PIO0_IRQ_1_COUNT: u32 = 0;
 unsafe fn PIO0_IRQ_1() {
     PIO0_IRQ_1_COUNT += 1;
     let pio = unsafe { &*pac::PIO0::ptr() };
-    
+
     // Clear interrupt flag
     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
-    // info!("PIO 0 IRQ 1 Executing"); 
+    // info!("PIO 0 IRQ 1 Executing");
     // Write next value to the TX FIFO
     // if let Some(delay) = DRIVER_1.as_mut().unwrap().step_generator.next() {
     //     pio.txf(0).write(|w| w.bits((delay + 128) >> 8));

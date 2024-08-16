@@ -15,8 +15,8 @@ use defmt::info;
 use defmt_rtt as _;
 use rp_pico::entry;
 // GPIO traits
-use embedded_hal::digital::OutputPin;
 use crate::pac::interrupt;
+use embedded_hal::digital::OutputPin;
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
 use panic_probe as _;
