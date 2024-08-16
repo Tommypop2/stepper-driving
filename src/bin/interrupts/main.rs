@@ -30,8 +30,8 @@ use rp_pico::hal;
 ///
 /// The function configures the RP2040 peripherals, then blinks the LED in an
 /// infinite loop.
-static mut PIO_IRQ_0_COUNT: u32 = 0;
-static mut PIO_IRQ_1_COUNT: u32 = 0;
+static mut PIO0_IRQ_1_COUNT: u32 = 0;
+static mut PIO1_IRQ_1_COUNT: u32 = 0;
 #[entry]
 fn main() -> ! {
     info!("Starting");
@@ -73,13 +73,18 @@ fn main() -> ! {
     );
     info!("4.5");
     unsafe {
-        pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_0);
+        // pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_0);
         info!("4.6");
         // Code hangs at this point
-        pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_0);
+        // pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_0);
         info!("4.7");
         pac::NVIC::unpend(pac::Interrupt::PIO0_IRQ_1);
         pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_1);
+        info!("4.8");
+        pac::NVIC::unpend(pac::Interrupt::PIO1_IRQ_1);
+        pac::NVIC::unmask(pac::Interrupt::PIO1_IRQ_1);
+
+
         // pac::NVIC::unpend(pac::Interrupt::PIO1_IRQ_0);
         // pac::NVIC::unmask(pac::Interrupt::PIO1_IRQ_0);
         // pac::NVIC::unpend(pac::Interrupt::PIO1_IRQ_1);
@@ -95,38 +100,41 @@ fn main() -> ! {
     );
     info!("6");
     let program = program_with_defines.program;
-    let (mut pio, sm0, sm1, _, _) = pac.PIO0.split(&mut pac.RESETS);
+    let (mut pio0, sm0, sm1, _, _) = pac.PIO0.split(&mut pac.RESETS);
+    let (mut pio1, sm02, sm12, _, _) = pac.PIO1.split(&mut pac.RESETS);
     info!("7");
-    let installed = pio.install(&program).unwrap();
-    let installed1 = pio.install(&program).unwrap();
+    let installed = pio0.install(&program).unwrap();
+    let installed1 = pio1.install(&program).unwrap();
     info!("7");
-    let (mut sm0, _, mut _tx0) = hal::pio::PIOBuilder::from_installed_program(installed)
-        // .set_pins(pio_pin_id, 1)
-        // Tick every microsecond
-        .clock_divisor_fixed_point(125, 0)
-        .out_shift_direction(hal::pio::ShiftDirection::Right)
-        .build(sm0);
-    info!("8");
-    let (mut sm1, _, mut _tx1) = hal::pio::PIOBuilder::from_installed_program(installed1)
+    let (mut sm1, _, mut _tx0) = hal::pio::PIOBuilder::from_installed_program(installed)
         // .set_pins(pio_pin_id, 1)
         // Tick every microsecond
         .clock_divisor_fixed_point(125, 0)
         .out_shift_direction(hal::pio::ShiftDirection::Right)
         .build(sm1);
+    info!("8");
+    let (mut sm12, _, mut _tx1) = hal::pio::PIOBuilder::from_installed_program(installed1)
+        // .set_pins(pio_pin_id, 1)
+        // Tick every microsecond
+        .clock_divisor_fixed_point(125, 0)
+        .out_shift_direction(hal::pio::ShiftDirection::Right)
+        .build(sm12);
     info!("9");
-    pio.irq0().enable_sm_interrupt(0);
-    pio.irq1().enable_sm_interrupt(1);
+    // pio0.irq0().enable_sm_interrupt(0);
+    pio0.irq1().enable_sm_interrupt(1);
+    pio1.irq1().enable_sm_interrupt(1);
     // Blink the LED at 1 Hz
     info!("Starting State Machines");
     delay.delay_ms(100);
-    let sm0 = sm0.start();
     let sm1 = sm1.start();
+    info!("9.5");
+    let sm12 = sm12.start();
     delay.delay_ms(100);
-    sm0.stop();
     sm1.stop();
+    sm12.stop();
     info!("10");
-    info!("PIO_IRQ_0_COUNT: {}", unsafe { PIO_IRQ_0_COUNT });
-    info!("PIO_IRQ_1_COUNT: {}", unsafe { PIO_IRQ_1_COUNT });
+    info!("PIO0_IRQ_1_COUNT: {}", unsafe { PIO0_IRQ_1_COUNT });
+    info!("PIO1_IRQ_1_COUNT: {}", unsafe { PIO1_IRQ_1_COUNT });
     info!("11");
     loop {
         led_pin.set_high().unwrap();
@@ -138,20 +146,20 @@ fn main() -> ! {
 
 // End of file
 #[pac::interrupt]
-unsafe fn PIO0_IRQ_0() {
-    let pio = unsafe { &*pac::PIO0::ptr() };
-
-    // Clear interrupt flag
-    pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
-    // info!("PIO0_IRQ_0");
-    PIO_IRQ_0_COUNT += 1;
-}
-#[pac::interrupt]
 unsafe fn PIO0_IRQ_1() {
     let pio = unsafe { &*pac::PIO0::ptr() };
 
     // Clear interrupt flag
     pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
+    // info!("PIO0_IRQ_0");
+    PIO0_IRQ_1_COUNT += 1;
+}
+#[pac::interrupt]
+unsafe fn PIO1_IRQ_1() {
+    let pio = unsafe { &*pac::PIO1::ptr() };
+
+    // Clear interrupt flag
+    pio.irq().write_with_zero(|w| w.irq().bits(1 << 1));
     // info!("PIO0_IRQ_1");
-    PIO_IRQ_1_COUNT += 1;
+    PIO1_IRQ_1_COUNT += 1;
 }

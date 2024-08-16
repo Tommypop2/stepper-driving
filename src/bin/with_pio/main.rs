@@ -84,11 +84,17 @@ fn main() -> ! {
         pac::NVIC::unmask(pac::Interrupt::PIO0_IRQ_1);
     }
     // Set the LED to be an output
-    let mut yellow_pin: Pin<_, FunctionPio0, _> = pins.gpio9.into_function();
-    let mut red_pin = pins.gpio10.into_push_pull_output();
-    let mut dir_pin = pins.gpio18.into_push_pull_output();
-    let mut en_pin = pins.gpio17.into_push_pull_output();
-    let step_pin: Pin<_, FunctionPio0, _> = pins.gpio16.into_function();
+    // let mut yellow_pin: Pin<_, FunctionPio0, _> = pins.gpio9.into_function();
+    // let mut red_pin = pins.gpio10.into_push_pull_output();
+    // let mut dir_pin = pins.gpio18.into_push_pull_output();
+    // let mut en_pin = pins.gpio17.into_push_pull_output();
+    // let step_pin: Pin<_, FunctionPio0, _> = pins.gpio16.into_function();
+    // let dir_pin = pins.gpio26.into_push_pull_output();
+    // let en_pin = pins.gpio28.into_push_pull_output();
+    // let step_pin: Pin<_, FunctionPio0, _> = pins.gpio27.into_function();
+    let dir_pin = pins.gpio20.into_push_pull_output();
+    let en_pin = pins.gpio22.into_push_pull_output();
+    let step_pin: Pin<_, FunctionPio0, _> = pins.gpio21.into_function();
     let program_with_defines = pio_proc::pio_file!(
         "src/bin/with_pio/step.pio",
         // select_program("step"), // Optional if only one program in the file
