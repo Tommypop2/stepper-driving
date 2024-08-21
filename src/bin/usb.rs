@@ -12,6 +12,11 @@
 #![no_std]
 #![no_main]
 
+use core::ptr::addr_of_mut;
+use core::str;
+
+use defmt::info;
+use defmt_rtt as _;
 // The macro for our start-up function
 use rp_pico::entry;
 
@@ -23,7 +28,7 @@ use embedded_hal::digital::OutputPin;
 
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
-use panic_halt as _;
+use panic_probe as _;
 
 // Pull in any important traits
 use rp_pico::hal::prelude::*;
@@ -58,6 +63,8 @@ static mut USB_SERIAL: Option<SerialPort<hal::usb::UsbBus>> = None;
 ///
 /// The function configures the RP2040 peripherals, then blinks the LED in an
 /// infinite loop.
+static mut BUF: [u8; 64] = [0u8; 64];
+static mut COUNT: usize = 0;
 #[entry]
 fn main() -> ! {
     // Grab our singleton objects
@@ -152,6 +159,19 @@ fn main() -> ! {
         delay.delay_ms(500);
         led_pin.set_low().unwrap();
         delay.delay_ms(500);
+
+        if (unsafe { COUNT } != 0) {
+            let msg = unsafe { &BUF[..COUNT] };
+            unsafe {
+                COUNT = 0;
+            }
+            let string = str::from_utf8(msg).unwrap();
+            let trimmed = string.trim();
+            info!("{}", trimmed);
+            unsafe {
+                let _ = USB_SERIAL.as_mut().unwrap().write(b"ACK\n");
+            }
+        }
     }
 }
 
@@ -163,44 +183,18 @@ fn main() -> ! {
 #[allow(non_snake_case)]
 #[interrupt]
 unsafe fn USBCTRL_IRQ() {
-    use core::sync::atomic::{AtomicBool, Ordering};
-
-    /// Note whether we've already printed the "hello" message.
-    static SAID_HELLO: AtomicBool = AtomicBool::new(false);
-
     // Grab the global objects. This is OK as we only access them under interrupt.
     let usb_dev = USB_DEVICE.as_mut().unwrap();
     let serial = USB_SERIAL.as_mut().unwrap();
 
-    // Say hello exactly once on start-up
-    if !SAID_HELLO.load(Ordering::Relaxed) {
-        SAID_HELLO.store(true, Ordering::Relaxed);
-        let _ = serial.write(b"Hello, World!\r\n");
-    }
-
     // Poll the USB driver with all of our supported USB Classes
     if usb_dev.poll(&mut [serial]) {
-        let mut buf = [0u8; 64];
-        match serial.read(&mut buf) {
-            Err(_e) => {
-                // Do nothing
-            }
-            Ok(0) => {
-                // Do nothing
-            }
+        // Code of questionable safety:
+        match serial.read(&mut *addr_of_mut!(BUF)) {
+            Err(_e) => {}
+            Ok(0) => {}
             Ok(count) => {
-                // Convert to upper case
-                buf.iter_mut().take(count).for_each(|b| {
-                    b.make_ascii_uppercase();
-                });
-
-                // Send back to the host
-                let mut wr_ptr = &buf[..count];
-                while !wr_ptr.is_empty() {
-                    let _ = serial.write(wr_ptr).map(|len| {
-                        wr_ptr = &wr_ptr[len..];
-                    });
-                }
+                COUNT = count;
             }
         }
     }
